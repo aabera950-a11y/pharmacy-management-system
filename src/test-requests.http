@@ -1,0 +1,15 @@
+### Add a New Medicine (Tablet)
+POST http://localhost:8080/api/medicines
+Content-Type: application/json
+
+{
+  "name": "Paracetamol",
+  "category": "Tablet",
+  "price": 5.50,
+  "stockQuantity": 100,
+  "requiresPrescription": false,
+  "manufacturer": "PharmaCorp"
+}
+
+### Get All Medicines
+GET http://localhost:8080/api/medicines
