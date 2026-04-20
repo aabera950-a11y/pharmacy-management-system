@@ -24,4 +24,8 @@ public class MedicineController {
         repository.deleteById(id);
         return "Medicine with ID " + id + " has been deleted successfully!";
     }
+    @GetMapping("/search")
+    public List<Medicine> searchByName(@RequestParam String name) {
+        return repository.findByNameContainingIgnoreCase(name);
+    }
 }
