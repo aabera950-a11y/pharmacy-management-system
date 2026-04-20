@@ -1,0 +1,115 @@
+:root {
+    --primary-blue: #2c3e50;
+    --medical-blue: #3498db;
+    --success-green: #27ae60;
+    --danger-red: #e74c3c;
+    --light-bg: #f4f7f6;
+}
+
+body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-color: var(--light-bg);
+    margin: 0;
+    color: #333;
+}
+
+header {
+    background: var(--primary-blue);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.container {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 20px;
+}
+
+/* Card Styling */
+.form-card, .table-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+h3 {
+    margin-top: 0;
+    color: var(--primary-blue);
+    border-bottom: 2px solid var(--light-bg);
+    padding-bottom: 10px;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--medical-blue);
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+/* Buttons */
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+button:active { transform: scale(0.98); }
+
+.btn-add { background: var(--success-green); color: white; width: 100%; }
+.btn-search { background: var(--medical-blue); color: white; }
+.btn-refresh { background: #95a5a6; color: white; }
+.btn-delete { background: var(--danger-red); color: white; padding: 6px 12px; }
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    padding: 15px;
+    background: var(--light-bg);
+    color: var(--primary-blue);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+tr:hover { background-color: #fcfcfc; }
+
+/* Status Badge for Stock */
+.stock-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    background: #e1f5fe;
+    color: #01579b;
+}

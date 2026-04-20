@@ -28,4 +28,8 @@ public class MedicineController {
     public List<Medicine> searchByName(@RequestParam String name) {
         return repository.findByNameContainingIgnoreCase(name);
     }
+    @PostMapping
+    public Medicine addMedicine(@RequestBody Medicine medicine) {
+        return repository.save(medicine);
+    }
 }

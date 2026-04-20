@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Pro | Inventory Management</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Pharmacy Pro System</h1>
+</header>
+
+<div class="container">
+    <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <div class="search-group">
+            <input type="text" id="searchInput" placeholder="Search medicines...">
+            <button onclick="searchMedicine()" class="btn-search">Search</button>
+            <button onclick="loadMedicines()" class="btn-refresh">View All</button>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <h3>+ Register New Stock</h3>
+        <form id="medicineForm">
+            <div class="form-grid">
+                <input type="text" id="name" placeholder="Medicine Name" required>
+                <input type="text" id="category" placeholder="Category (e.g. Tablet)" required>
+                <input type="number" id="price" placeholder="Price ($)" step="0.01" required>
+                <input type="number" id="stock" placeholder="Initial Stock" required>
+            </div>
+            <button type="submit" class="btn-add">Add to Inventory</button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Medicine Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock Level</th>
+                <th>Management</th>
+            </tr>
+            </thead>
+            <tbody id="medicineTable">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
