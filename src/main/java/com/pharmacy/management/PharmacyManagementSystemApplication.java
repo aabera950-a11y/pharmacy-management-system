@@ -18,17 +18,18 @@ public class PharmacyManagementSystemApplication {
     @Bean
     CommandLineRunner initDatabase(MedicineRepository repository) {
         return args -> {
-            // This creates a sample tablet automatically when the app starts
-            Medicine sample = new Medicine();
-            sample.setName("Paracetamol");
-            sample.setCategory("Tablet");
-            sample.setPrice(5.50);
-            sample.setStockQuantity(100);
-            sample.setRequiresPrescription(false);
-            sample.setManufacturer("Global Pharma");
-
-            repository.save(sample);
-            System.out.println(">>> Pharmacy Database Initialized with Paracetamol!");
+            // Only add data if the database is completely empty!
+            if (repository.count() == 0) {
+                Medicine m1 = new Medicine();
+                m1.setName("Paracetamol");
+                m1.setCategory("Tablet");
+                m1.setPrice(5.50);
+                m1.setStockQuantity(100);
+                repository.save(m1);
+                System.out.println("Database was empty. Added initial data.");
+            } else {
+                System.out.println("Database already has data. Skipping initialization.");
+            }
         };
     }
 }

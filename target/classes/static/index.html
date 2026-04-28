@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Pro | Inventory Management</title>
+    <title>Pharmacy Pro | Management System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
+<header style="display: flex; justify-content: space-between; align-items: center; padding: 0 50px;">
     <h1>Pharmacy Pro System</h1>
+    <div class="user-info" style="display: flex; align-items: center; gap: 20px;">
+        <span id="userNameDisplay" style="color: white; font-weight: bold; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px;">👤 Loading...</span>
+        <a href="/logout" style="color: white; text-decoration: none; border: 1px solid white; padding: 5px 12px; border-radius: 6px; font-size: 0.9rem; transition: 0.3s;" onmouseover="this.style.background='white'; this.style.color='#2c3e50'" onmouseout="this.style.background='transparent'; this.style.color='white'">Logout 🚪</a>
+    </div>
 </header>
 
 <div class="container">
@@ -21,34 +25,90 @@
         </div>
     </div>
 
-    <div class="form-card">
-        <h3>+ Register New Stock</h3>
+    <div id="storeSection" class="form-card">
+        <h3>+ Register & Restock Inventory</h3>
         <form id="medicineForm">
             <div class="form-grid">
-                <input type="text" id="name" placeholder="Medicine Name" required>
-                <input type="text" id="category" placeholder="Category (e.g. Tablet)" required>
-                <input type="number" id="price" placeholder="Price ($)" step="0.01" required>
-                <input type="number" id="stock" placeholder="Initial Stock" required>
+                <div class="input-item">
+                    <label>Medicine Name</label>
+                    <input type="text" id="name" placeholder="e.g. Paracetamol" required>
+                </div>
+                <div class="input-item">
+                    <label>Category</label>
+                    <input type="text" id="category" placeholder="e.g. Tablet" required>
+                </div>
+                <div class="input-item">
+                    <label>Unit Price ($)</label>
+                    <input type="number" id="price" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="input-item">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="stock" placeholder="Amount from Distributor" required>
+                </div>
+                <div class="input-item">
+                    <label>Expiry Date</label>
+                    <input type="date" id="expiryDate" required>
+                </div>
+                <div class="input-item">
+                    <label>Distributor</label>
+                    <input type="text" id="distributorName" placeholder="Distributor Name">
+                </div>
             </div>
-            <button type="submit" class="btn-add">Add to Inventory</button>
+            <button type="submit" class="btn-add">Confirm Stock Update</button>
         </form>
     </div>
 
     <div class="table-container">
+        <h3>Current Inventory</h3>
         <table>
             <thead>
             <tr>
                 <th>ID</th>
-                <th>Medicine Name</th>
+                <th>Medicine Info</th>
                 <th>Category</th>
                 <th>Price</th>
                 <th>Stock Level</th>
+                <th>Expiry</th>
                 <th>Management</th>
             </tr>
             </thead>
             <tbody id="medicineTable">
             </tbody>
         </table>
+    </div>
+
+    <div id="salesHistorySection" class="table-container" style="margin-top: 50px; border-top: 4px solid #f39c12;">
+        <h3>Financial Sales History</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Medicine</th>
+                <th>Qty</th>
+                <th>Total Price</th>
+            </tr>
+            </thead>
+            <tbody id="salesHistoryTable">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="salesModal" class="modal">
+    <div class="modal-content">
+        <h3>Confirm Sale</h3>
+        <p id="modalMedName" style="font-weight: bold; color: #2c3e50;"></p>
+        <p>Available: <span id="modalStockLimit"></span> units</p>
+
+        <div class="form-group">
+            <label>Quantity to Sell:</label>
+            <input type="number" id="sellQuantity" min="1" value="1">
+        </div>
+
+        <div class="modal-actions">
+            <button onclick="closeModal()" class="btn-refresh">Cancel</button>
+            <button id="confirmSellBtn" class="btn-sell">Complete Sale</button>
+        </div>
     </div>
 </div>
 
