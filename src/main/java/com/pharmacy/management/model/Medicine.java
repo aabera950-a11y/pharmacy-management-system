@@ -14,6 +14,7 @@ public class Medicine {
     private String name;
     private String category;
     private Double price;
+    private Double costPrice;   // NEW: Buying Price from Distributor
     private Integer stockQuantity;
 
     // FIELDS FOR SUPPLY CHAIN & LOGISTICS

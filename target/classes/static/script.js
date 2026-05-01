@@ -65,8 +65,6 @@ function displayMedicines(data) {
     const tableBody = document.getElementById('medicineTable');
     tableBody.innerHTML = data.map(med => {
         const isLowStock = med.stockQuantity < 10;
-
-        // Expiry Logic: Check if current date is past the expiry date
         const expiryDateObj = new Date(med.expiryDate);
         const today = new Date();
         const isExpired = med.expiryDate && expiryDateObj < today;
@@ -74,17 +72,12 @@ function displayMedicines(data) {
         const stockStyle = isLowStock ? 'background: #ffcccc; color: #cc0000;' : 'background: #e1f5fe; color: #01579b;';
         const expiryStyle = isExpired ? 'background: #f8d7da; color: #721c24; font-weight: bold; padding: 2px 5px; border-radius: 4px;' : 'color: #7f8c8d;';
 
-        // --- ROLE-BASED BUTTONS ---
-
-        // SELL: Only Admin & Seller
         const canSell = (currentUserRole === 'ADMIN' || currentUserRole === 'SELLER');
         const sellBtn = canSell ? `<button class="btn-sell" onclick="sellMed(${med.id}, ${med.stockQuantity}, '${med.name}')">Sell</button>` : '';
 
-        // RESTOCK/EDIT: Only Admin & Keeper
         const canManage = (currentUserRole === 'ADMIN' || currentUserRole === 'STORE_KEEPER');
         const editBtn = canManage ? `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})">Restock</button>` : '';
 
-        // DELETE: Only Admin (To remove expired/bad stock)
         const canDelete = (currentUserRole === 'ADMIN');
         const deleteBtn = canDelete ? `<button class="btn-delete" onclick="deleteMed(${med.id})">Remove</button>` : '';
 
@@ -161,9 +154,28 @@ function deleteMed(id) {
     }
 }
 
+// --- UPDATED RESET FORM FUNCTION ---
+function resetForm() {
+    editMode = false;
+    editId = null;
+    document.getElementById('medicineForm').reset();
+
+    // UI Resets
+    document.getElementById('formTitle').innerText = "+ Add New Stock";
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.innerText = "Add New Stock";
+    submitBtn.style.background = "#27ae60"; // Back to Green
+
+    // Hide the cancel button
+    document.getElementById('cancelBtn').style.display = "none";
+}
+
+// --- UPDATED PREPARE EDIT FUNCTION ---
 function prepareEdit(med) {
     editMode = true;
     editId = med.id;
+
+    // Fill form fields
     document.getElementById('name').value = med.name;
     document.getElementById('category').value = med.category;
     document.getElementById('price').value = med.price;
@@ -171,10 +183,16 @@ function prepareEdit(med) {
     document.getElementById('expiryDate').value = med.expiryDate;
     document.getElementById('distributorName').value = med.distributorName;
 
-    const submitBtn = document.querySelector('.btn-add');
-    submitBtn.innerText = "Update & Restock Stock";
-    submitBtn.style.background = "#3498db";
-    window.scrollTo(0, 0);
+    // UI Updates for Restock Mode
+    document.getElementById('formTitle').innerText = "⚠️ Restocking: " + med.name;
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.innerText = "Update Existing Stock";
+    submitBtn.style.background = "#3498db"; // Turn Blue
+
+    // Show the cancel button
+    document.getElementById('cancelBtn').style.display = "inline-block";
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 const medicineForm = document.getElementById('medicineForm');
@@ -200,11 +218,7 @@ medicineForm.onsubmit = function(e) {
         .then(res => {
             if(res.ok) {
                 loadMedicines();
-                medicineForm.reset();
-                editMode = false;
-                editId = null;
-                document.querySelector('.btn-add').innerText = "Add to Inventory";
-                document.querySelector('.btn-add').style.background = "#27ae60";
+                resetForm(); // Calls the reset logic to clear form and buttons
             }
         });
 };

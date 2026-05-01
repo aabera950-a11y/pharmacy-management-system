@@ -39,22 +39,16 @@ public class MedicineController {
     }
 
     @PutMapping("/{id}")
-    public Medicine updateMedicine(@PathVariable Long id, @RequestBody Medicine medicineDetails) {
-        Medicine medicine = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Medicine not found with id: " + id));
-
-        // UPDATED LOGIC: Map the new Logistics fields
-        medicine.setName(medicineDetails.getName());
-        medicine.setCategory(medicineDetails.getCategory());
-        medicine.setPrice(medicineDetails.getPrice());
-        medicine.setStockQuantity(medicineDetails.getStockQuantity());
-
-        // Ensure these match your Medicine.java field names exactly
-        medicine.setExpiryDate(medicineDetails.getExpiryDate());
-        medicine.setDistributorName(medicineDetails.getDistributorName());
-        medicine.setBatchNumber(medicineDetails.getBatchNumber());
-
-        return repository.save(medicine);
+    public Medicine updateMedicine(@PathVariable Long id, @RequestBody Medicine details) {
+        Medicine med = repository.findById(id).orElseThrow();
+        med.setName(details.getName());
+        med.setCategory(details.getCategory());
+        med.setPrice(details.getPrice());
+        med.setCostPrice(details.getCostPrice()); // Update cost price
+        med.setStockQuantity(details.getStockQuantity());
+        med.setExpiryDate(details.getExpiryDate());
+        med.setDistributorName(details.getDistributorName());
+        return repository.save(med);
     }
 
     @DeleteMapping("/{id}")
@@ -66,27 +60,31 @@ public class MedicineController {
 
     @PostMapping("/{id}/sell")
     public Medicine sellMedicine(@PathVariable Long id, @RequestParam int quantity) {
-        Medicine medicine = repository.findById(id)
+        Medicine med = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Medicine not found"));
 
-        if (medicine.getStockQuantity() < quantity) {
+        if (med.getStockQuantity() < quantity) {
             throw new RuntimeException("Insufficient stock!");
         }
 
-        // Subtract from stock
-        medicine.setStockQuantity(medicine.getStockQuantity() - quantity);
-        repository.save(medicine);
+        // Calculate Financials
+        double revenue = med.getPrice() * quantity;
+        double profit = (med.getPrice() - med.getCostPrice()) * quantity;
 
-        // CREATE SALE RECORD
+        // Update Inventory
+        med.setStockQuantity(med.getStockQuantity() - quantity);
+        repository.save(med);
+
+        // Record Sale with Profit Math
         Sale sale = new Sale();
-        sale.setMedicineName(medicine.getName());
+        sale.setMedicineName(med.getName());
         sale.setQuantity(quantity);
-        sale.setTotalPrice(medicine.getPrice() * quantity);
+        sale.setTotalPrice(revenue);
+        sale.setTotalProfit(profit); // Save the calculated profit
         sale.setSaleDate(LocalDateTime.now());
-
         saleRepository.save(sale);
 
-        return medicine;
+        return med;
     }
 
     @GetMapping("/sales/history")

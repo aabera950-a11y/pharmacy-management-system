@@ -14,5 +14,6 @@ public class Sale {
     private String medicineName;
     private int quantity;
     private double totalPrice;
+    private Double totalProfit; // NEW: Actual money earned
     private LocalDateTime saleDate;
 }

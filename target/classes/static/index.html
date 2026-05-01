@@ -17,6 +17,7 @@
 </header>
 
 <div class="container">
+    <!-- SEARCH & VIEW ALL SECTION -->
     <div class="action-bar" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
         <div class="search-group">
             <input type="text" id="searchInput" placeholder="Search medicines...">
@@ -25,8 +26,9 @@
         </div>
     </div>
 
+    <!-- KEEPER FORM SECTION -->
     <div id="storeSection" class="form-card">
-        <h3>+ Register & Restock Inventory</h3>
+        <h3 id="formTitle">+ Add New Stock</h3>
         <form id="medicineForm">
             <div class="form-grid">
                 <div class="input-item">
@@ -54,10 +56,16 @@
                     <input type="text" id="distributorName" placeholder="Distributor Name">
                 </div>
             </div>
-            <button type="submit" class="btn-add">Confirm Stock Update</button>
+
+            <!-- DYNAMIC BUTTONS -->
+            <div id="formActions" style="margin-top: 15px; display: flex; gap: 10px;">
+                <button type="submit" id="submitBtn" class="btn-add">Add New Stock</button>
+                <button type="button" id="cancelBtn" onclick="resetForm()" class="btn-refresh" style="display: none;">Cancel Restock</button>
+            </div>
         </form>
     </div>
 
+    <!-- INVENTORY TABLE -->
     <div class="table-container">
         <h3>Current Inventory</h3>
         <table>
@@ -77,6 +85,7 @@
         </table>
     </div>
 
+    <!-- ADMIN SALES HISTORY -->
     <div id="salesHistorySection" class="table-container" style="margin-top: 50px; border-top: 4px solid #f39c12;">
         <h3>Financial Sales History</h3>
         <table>
@@ -94,6 +103,7 @@
     </div>
 </div>
 
+<!-- SALES MODAL -->
 <div id="salesModal" class="modal">
     <div class="modal-content">
         <h3>Confirm Sale</h3>
