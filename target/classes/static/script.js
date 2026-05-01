@@ -26,18 +26,36 @@ document.addEventListener('DOMContentLoaded', function() {
 function applyRolePermissions(role) {
     const adminSection = document.getElementById('salesHistorySection');
     const storeSection = document.getElementById('storeSection');
+    const adminDashboard = document.getElementById('adminDashboard');
+    const costHeader = document.getElementById('costHeader');
+    const priceInputGroup = document.getElementById('priceInputGroup');
+    const priceInput = document.getElementById('price');
 
     if (role === 'SELLER') {
         if(storeSection) storeSection.style.display = 'none';
         if(adminSection) adminSection.style.display = 'none';
+        if(adminDashboard) adminDashboard.style.display = 'none';
+        if(costHeader) costHeader.style.display = 'none';
     }
     else if (role === 'STORE_KEEPER') {
         if(adminSection) adminSection.style.display = 'none';
         if(storeSection) storeSection.style.display = 'block';
+        if(adminDashboard) adminDashboard.style.display = 'none';
+        if(costHeader) costHeader.style.display = 'none';
+
+        // Keeper cannot set the selling price
+        if(priceInputGroup) priceInputGroup.style.display = 'none';
+        if(priceInput) priceInput.required = false;
     }
     else if (role === 'ADMIN') {
         if(adminSection) adminSection.style.display = 'block';
         if(storeSection) storeSection.style.display = 'block';
+        if(adminDashboard) adminDashboard.style.display = 'block';
+        if(costHeader) costHeader.style.display = 'table-cell';
+
+        // Admin must set/verify the selling price
+        if(priceInputGroup) priceInputGroup.style.display = 'block';
+        if(priceInput) priceInput.required = true;
     }
 }
 
@@ -56,10 +74,36 @@ function loadMedicines() {
 function loadSalesHistory() {
     fetch('/api/medicines/sales/history')
         .then(res => res.json())
-        .then(displaySales);
+        .then(sales => {
+            displaySales(sales);
+            calculateDashboard(sales);
+        });
 }
 
-// --- 3. DISPLAY LOGIC ---
+// --- 3. DASHBOARD LOGIC (FINANCIAL MATH) ---
+
+function calculateDashboard(sales) {
+    let totalRev = 0;
+    let totalProf = 0;
+    let totalItems = 0;
+
+    const today = new Date().toDateString();
+
+    sales.forEach(s => {
+        totalRev += s.totalPrice;
+        totalProf += (s.totalProfit || 0);
+
+        if (new Date(s.saleDate).toDateString() === today) {
+            totalItems += s.quantity;
+        }
+    });
+
+    document.getElementById('totalRevenue').innerText = `$${totalRev.toFixed(2)}`;
+    document.getElementById('totalProfit').innerText = `$${totalProf.toFixed(2)}`;
+    document.getElementById('itemsSold').innerText = totalItems;
+}
+
+// --- 4. DISPLAY LOGIC ---
 
 function displayMedicines(data) {
     const tableBody = document.getElementById('medicineTable');
@@ -72,35 +116,38 @@ function displayMedicines(data) {
         const stockStyle = isLowStock ? 'background: #ffcccc; color: #cc0000;' : 'background: #e1f5fe; color: #01579b;';
         const expiryStyle = isExpired ? 'background: #f8d7da; color: #721c24; font-weight: bold; padding: 2px 5px; border-radius: 4px;' : 'color: #7f8c8d;';
 
-        const canSell = (currentUserRole === 'ADMIN' || currentUserRole === 'SELLER');
-        const sellBtn = canSell ? `<button class="btn-sell" onclick="sellMed(${med.id}, ${med.stockQuantity}, '${med.name}')">Sell</button>` : '';
+        // PRO TIP: Warning highlight for medicines with no price set
+        const priceStyle = med.price <= 0
+            ? 'background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold; border: 1px solid #ffeeba;'
+            : 'font-weight: bold; color: #2c3e50;';
 
-        const canManage = (currentUserRole === 'ADMIN' || currentUserRole === 'STORE_KEEPER');
-        const editBtn = canManage ? `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})">Restock</button>` : '';
+        const priceDisplay = med.price <= 0 ? '⚠️ Set Price' : `$${med.price.toFixed(2)}`;
 
-        const canDelete = (currentUserRole === 'ADMIN');
-        const deleteBtn = canDelete ? `<button class="btn-delete" onclick="deleteMed(${med.id})">Remove</button>` : '';
+        // Role-based Button Logic
+        const sellBtn = (currentUserRole === 'ADMIN' || currentUserRole === 'SELLER') ?
+            `<button class="btn-sell" onclick="sellMed(${med.id}, ${med.stockQuantity}, '${med.name}')">Sell</button>` : '';
+
+        const editBtn = (currentUserRole === 'ADMIN' || currentUserRole === 'STORE_KEEPER') ?
+            `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})">Restock</button>` : '';
+
+        const deleteBtn = (currentUserRole === 'ADMIN') ?
+            `<button class="btn-delete" onclick="deleteMed(${med.id})">Remove</button>` : '';
+
+        const costCell = (currentUserRole === 'ADMIN') ?
+            `<td style="color: #e67e22; font-weight: bold;">$${(med.costPrice || 0).toFixed(2)}</td>` : '';
 
         return `
             <tr>
                 <td><strong>#${med.id}</strong></td>
-                <td>
-                    <strong>${med.name}</strong><br>
-                    <small>Dist: ${med.distributorName || 'Unknown'}</small>
-                </td>
+                <td><strong>${med.name}</strong><br><small>Dist: ${med.distributorName || 'N/A'}</small></td>
                 <td>${med.category}</td>
-                <td style="font-weight: bold;">$${med.price.toFixed(2)}</td>
-                <td>
-                    <span class="stock-badge" style="${stockStyle}">
-                        ${med.stockQuantity} units ${isLowStock ? '(Low!)' : ''}
-                    </span>
-                </td>
+                <td><span style="${priceStyle}">${priceDisplay}</span></td>
+                
+                ${costCell}
+                
+                <td><span class="stock-badge" style="${stockStyle}">${med.stockQuantity} units</span></td>
                 <td><span style="${expiryStyle}">${med.expiryDate || 'N/A'} ${isExpired ? '⚠️' : ''}</span></td>
-                <td>
-                    ${sellBtn}
-                    ${editBtn}
-                    ${deleteBtn}
-                </td>
+                <td>${sellBtn} ${editBtn} ${deleteBtn}</td>
             </tr>
         `;
     }).join('');
@@ -115,93 +162,79 @@ function displaySales(sales) {
     }).join('');
 }
 
-// --- 4. SALES & SEARCH ---
+// --- 5. SALES & SEARCH ---
 
 function searchMedicine() {
     const name = document.getElementById('searchInput').value;
-    fetch(`${API_URL}/search?name=${name}`)
-        .then(res => res.json())
-        .then(displayMedicines);
+    fetch(`${API_URL}/search?name=${name}`).then(res => res.json()).then(displayMedicines);
 }
 
 function sellMed(id, currentStock, name) {
     document.getElementById('modalMedName').innerText = name;
     document.getElementById('modalStockLimit').innerText = currentStock;
     document.getElementById('sellQuantity').value = 1;
-    document.getElementById('sellQuantity').max = currentStock;
     document.getElementById('salesModal').style.display = "block";
 
     document.getElementById('confirmSellBtn').onclick = function() {
         const qty = parseInt(document.getElementById('sellQuantity').value);
-        if (qty > currentStock || qty <= 0) {
-            alert("Invalid quantity!");
-            return;
-        }
+        if (qty > currentStock || qty <= 0) return alert("Invalid quantity!");
+
         fetch(`${API_URL}/${id}/sell?quantity=${qty}`, { method: 'POST' })
-            .then(res => {
-                if(res.ok) { loadMedicines(); closeModal(); }
-            });
+            .then(res => { if(res.ok) { loadMedicines(); closeModal(); } });
     };
 }
 
 function closeModal() { document.getElementById('salesModal').style.display = "none"; }
 
-// --- 5. INVENTORY MANAGEMENT ---
+// --- 6. INVENTORY MANAGEMENT ---
 
 function deleteMed(id) {
-    if(confirm("Admin Action: Are you sure you want to remove this batch?")) {
+    if(confirm("Admin Action: Remove this medicine?")) {
         fetch(`${API_URL}/${id}`, { method: 'DELETE' }).then(() => loadMedicines());
     }
 }
 
-// --- UPDATED RESET FORM FUNCTION ---
 function resetForm() {
     editMode = false;
     editId = null;
     document.getElementById('medicineForm').reset();
-
-    // UI Resets
     document.getElementById('formTitle').innerText = "+ Add New Stock";
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.innerText = "Add New Stock";
-    submitBtn.style.background = "#27ae60"; // Back to Green
-
-    // Hide the cancel button
+    document.getElementById('submitBtn').innerText = "Add New Stock";
+    document.getElementById('submitBtn').style.background = "#27ae60";
     document.getElementById('cancelBtn').style.display = "none";
 }
 
-// --- UPDATED PREPARE EDIT FUNCTION ---
 function prepareEdit(med) {
     editMode = true;
     editId = med.id;
-
-    // Fill form fields
     document.getElementById('name').value = med.name;
     document.getElementById('category').value = med.category;
-    document.getElementById('price').value = med.price;
+    document.getElementById('price').value = med.price || 0;
+    document.getElementById('costPrice').value = med.costPrice || 0;
     document.getElementById('stock').value = med.stockQuantity;
     document.getElementById('expiryDate').value = med.expiryDate;
     document.getElementById('distributorName').value = med.distributorName;
 
-    // UI Updates for Restock Mode
     document.getElementById('formTitle').innerText = "⚠️ Restocking: " + med.name;
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.innerText = "Update Existing Stock";
-    submitBtn.style.background = "#3498db"; // Turn Blue
-
-    // Show the cancel button
+    submitBtn.style.background = "#3498db";
     document.getElementById('cancelBtn').style.display = "inline-block";
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 const medicineForm = document.getElementById('medicineForm');
 medicineForm.onsubmit = function(e) {
     e.preventDefault();
+
+    // Fallback to 0 if price field is hidden (for Keeper)
+    const priceVal = document.getElementById('price').value;
+
     const medicineData = {
         name: document.getElementById('name').value,
         category: document.getElementById('category').value,
-        price: parseFloat(document.getElementById('price').value),
+        price: priceVal ? parseFloat(priceVal) : 0,
+        costPrice: parseFloat(document.getElementById('costPrice').value),
         stockQuantity: parseInt(document.getElementById('stock').value),
         expiryDate: document.getElementById('expiryDate').value,
         distributorName: document.getElementById('distributorName').value
@@ -215,10 +248,5 @@ medicineForm.onsubmit = function(e) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(medicineData)
     })
-        .then(res => {
-            if(res.ok) {
-                loadMedicines();
-                resetForm(); // Calls the reset logic to clear form and buttons
-            }
-        });
+        .then(res => { if(res.ok) { loadMedicines(); resetForm(); } });
 };

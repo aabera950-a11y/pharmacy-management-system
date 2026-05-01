@@ -27,21 +27,35 @@ function applyRolePermissions(role) {
     const adminSection = document.getElementById('salesHistorySection');
     const storeSection = document.getElementById('storeSection');
     const adminDashboard = document.getElementById('adminDashboard');
+    const costHeader = document.getElementById('costHeader');
+    const priceInputGroup = document.getElementById('priceInputGroup');
+    const priceInput = document.getElementById('price');
 
     if (role === 'SELLER') {
         if(storeSection) storeSection.style.display = 'none';
         if(adminSection) adminSection.style.display = 'none';
         if(adminDashboard) adminDashboard.style.display = 'none';
+        if(costHeader) costHeader.style.display = 'none';
     }
     else if (role === 'STORE_KEEPER') {
         if(adminSection) adminSection.style.display = 'none';
         if(storeSection) storeSection.style.display = 'block';
         if(adminDashboard) adminDashboard.style.display = 'none';
+        if(costHeader) costHeader.style.display = 'none';
+
+        // Keeper cannot set the selling price
+        if(priceInputGroup) priceInputGroup.style.display = 'none';
+        if(priceInput) priceInput.required = false;
     }
     else if (role === 'ADMIN') {
         if(adminSection) adminSection.style.display = 'block';
         if(storeSection) storeSection.style.display = 'block';
-        if(adminDashboard) adminDashboard.style.display = 'block'; // Show Dashboard to Admin
+        if(adminDashboard) adminDashboard.style.display = 'block';
+        if(costHeader) costHeader.style.display = 'table-cell';
+
+        // Admin must set/verify the selling price
+        if(priceInputGroup) priceInputGroup.style.display = 'block';
+        if(priceInput) priceInput.required = true;
     }
 }
 
@@ -62,9 +76,10 @@ function loadSalesHistory() {
         .then(res => res.json())
         .then(sales => {
             displaySales(sales);
-            calculateDashboard(sales); // NEW: Calculate financials
+            calculateDashboard(sales);
         });
 }
+
 // --- 3. DASHBOARD LOGIC (FINANCIAL MATH) ---
 
 function calculateDashboard(sales) {
@@ -76,9 +91,8 @@ function calculateDashboard(sales) {
 
     sales.forEach(s => {
         totalRev += s.totalPrice;
-        totalProf += (s.totalProfit || 0); // Handle old records without profit
+        totalProf += (s.totalProfit || 0);
 
-        // Count items sold specifically today
         if (new Date(s.saleDate).toDateString() === today) {
             totalItems += s.quantity;
         }
@@ -88,8 +102,6 @@ function calculateDashboard(sales) {
     document.getElementById('totalProfit').innerText = `$${totalProf.toFixed(2)}`;
     document.getElementById('itemsSold').innerText = totalItems;
 }
-
-
 
 // --- 4. DISPLAY LOGIC ---
 
@@ -104,6 +116,14 @@ function displayMedicines(data) {
         const stockStyle = isLowStock ? 'background: #ffcccc; color: #cc0000;' : 'background: #e1f5fe; color: #01579b;';
         const expiryStyle = isExpired ? 'background: #f8d7da; color: #721c24; font-weight: bold; padding: 2px 5px; border-radius: 4px;' : 'color: #7f8c8d;';
 
+        // PRO TIP: Warning highlight for medicines with no price set
+        const priceStyle = med.price <= 0
+            ? 'background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold; border: 1px solid #ffeeba;'
+            : 'font-weight: bold; color: #2c3e50;';
+
+        const priceDisplay = med.price <= 0 ? '⚠️ Set Price' : `$${med.price.toFixed(2)}`;
+
+        // Role-based Button Logic
         const sellBtn = (currentUserRole === 'ADMIN' || currentUserRole === 'SELLER') ?
             `<button class="btn-sell" onclick="sellMed(${med.id}, ${med.stockQuantity}, '${med.name}')">Sell</button>` : '';
 
@@ -113,12 +133,18 @@ function displayMedicines(data) {
         const deleteBtn = (currentUserRole === 'ADMIN') ?
             `<button class="btn-delete" onclick="deleteMed(${med.id})">Remove</button>` : '';
 
+        const costCell = (currentUserRole === 'ADMIN') ?
+            `<td style="color: #e67e22; font-weight: bold;">$${(med.costPrice || 0).toFixed(2)}</td>` : '';
+
         return `
             <tr>
                 <td><strong>#${med.id}</strong></td>
                 <td><strong>${med.name}</strong><br><small>Dist: ${med.distributorName || 'N/A'}</small></td>
                 <td>${med.category}</td>
-                <td style="font-weight: bold;">$${med.price.toFixed(2)}</td>
+                <td><span style="${priceStyle}">${priceDisplay}</span></td>
+                
+                ${costCell}
+                
                 <td><span class="stock-badge" style="${stockStyle}">${med.stockQuantity} units</span></td>
                 <td><span style="${expiryStyle}">${med.expiryDate || 'N/A'} ${isExpired ? '⚠️' : ''}</span></td>
                 <td>${sellBtn} ${editBtn} ${deleteBtn}</td>
@@ -142,6 +168,7 @@ function searchMedicine() {
     const name = document.getElementById('searchInput').value;
     fetch(`${API_URL}/search?name=${name}`).then(res => res.json()).then(displayMedicines);
 }
+
 function sellMed(id, currentStock, name) {
     document.getElementById('modalMedName').innerText = name;
     document.getElementById('modalStockLimit').innerText = currentStock;
@@ -159,15 +186,13 @@ function sellMed(id, currentStock, name) {
 
 function closeModal() { document.getElementById('salesModal').style.display = "none"; }
 
-// --- 5. INVENTORY MANAGEMENT ---
+// --- 6. INVENTORY MANAGEMENT ---
 
 function deleteMed(id) {
     if(confirm("Admin Action: Remove this medicine?")) {
         fetch(`${API_URL}/${id}`, { method: 'DELETE' }).then(() => loadMedicines());
     }
 }
-
-// --- 6. INVENTORY MANAGEMENT (KEEPER/ADMIN) ---
 
 function resetForm() {
     editMode = false;
@@ -179,14 +204,13 @@ function resetForm() {
     document.getElementById('cancelBtn').style.display = "none";
 }
 
-// --- UPDATED PREPARE EDIT FUNCTION ---
 function prepareEdit(med) {
     editMode = true;
     editId = med.id;
     document.getElementById('name').value = med.name;
     document.getElementById('category').value = med.category;
-    document.getElementById('price').value = med.price;
-    document.getElementById('costPrice').value = med.costPrice || 0; // Populate Cost Price
+    document.getElementById('price').value = med.price || 0;
+    document.getElementById('costPrice').value = med.costPrice || 0;
     document.getElementById('stock').value = med.stockQuantity;
     document.getElementById('expiryDate').value = med.expiryDate;
     document.getElementById('distributorName').value = med.distributorName;
@@ -202,11 +226,15 @@ function prepareEdit(med) {
 const medicineForm = document.getElementById('medicineForm');
 medicineForm.onsubmit = function(e) {
     e.preventDefault();
+
+    // Fallback to 0 if price field is hidden (for Keeper)
+    const priceVal = document.getElementById('price').value;
+
     const medicineData = {
         name: document.getElementById('name').value,
         category: document.getElementById('category').value,
-        price: parseFloat(document.getElementById('price').value),
-        costPrice: parseFloat(document.getElementById('costPrice').value), // NEW
+        price: priceVal ? parseFloat(priceVal) : 0,
+        costPrice: parseFloat(document.getElementById('costPrice').value),
         stockQuantity: parseInt(document.getElementById('stock').value),
         expiryDate: document.getElementById('expiryDate').value,
         distributorName: document.getElementById('distributorName').value

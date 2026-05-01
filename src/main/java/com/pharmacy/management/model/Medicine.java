@@ -18,10 +18,15 @@ public class Medicine {
     private Integer stockQuantity;
 
     // FIELDS FOR SUPPLY CHAIN & LOGISTICS
+    @Column(name = "expiry_date")
+    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
     private LocalDate expiryDate;
     private String distributorName;
 
     // Batch number is excellent for tracking which specific
     // shipment a medicine came from in case of a recall.
     private String batchNumber;
+    // Inside Medicine.java
+
+
 }
