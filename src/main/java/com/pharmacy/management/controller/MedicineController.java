@@ -1,14 +1,18 @@
 package com.pharmacy.management.controller;
 
+import com.pharmacy.management.model.Batch;
 import com.pharmacy.management.model.Medicine;
 import com.pharmacy.management.model.Sale;
 import com.pharmacy.management.repository.MedicineRepository;
 import com.pharmacy.management.repository.SaleRepository;
+import com.pharmacy.management.service.MedicineService;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/medicines")
@@ -16,10 +20,14 @@ public class MedicineController {
 
     private final MedicineRepository repository;
     private final SaleRepository saleRepository;
+    private final MedicineService medicineService;
 
-    public MedicineController(MedicineRepository repository, SaleRepository saleRepository) {
+    public MedicineController(MedicineRepository repository,
+                              SaleRepository saleRepository,
+                              MedicineService medicineService) {
         this.repository = repository;
         this.saleRepository = saleRepository;
+        this.medicineService = medicineService;
     }
 
     @GetMapping
@@ -32,10 +40,43 @@ public class MedicineController {
         return repository.findByNameContainingIgnoreCase(name);
     }
 
+    /**
+     * SMART ADD: If medicine exists by name, add a new batch.
+     * If not, create the medicine AND the first batch.
+     */
     @PostMapping
-    public Medicine addMedicine(@RequestBody Medicine medicine) {
-        // When the Keeper adds new stock, this saves the whole object including Expiry and Distributor
-        return repository.save(medicine);
+    @Transactional
+    public Medicine addMedicine(@RequestBody Medicine medicineData) {
+        Optional<Medicine> existingMed = repository.findByNameIgnoreCase(medicineData.getName());
+
+        if (existingMed.isPresent()) {
+            // Case A: Medicine exists, add a new batch to it
+            Medicine med = existingMed.get();
+            if (medicineData.getBatches() != null && !medicineData.getBatches().isEmpty()) {
+                medicineService.addStock(med.getId(), medicineData.getBatches().get(0));
+            }
+            return med;
+        } else {
+            // Case B: New medicine entirely
+            if (medicineData.getBatches() != null) {
+                medicineData.getBatches().forEach(batch -> batch.setMedicine(medicineData));
+            }
+            return repository.save(medicineData);
+        }
+    }
+
+    /**
+     * ADMIN ONLY: Dedicated endpoint to update only the selling price.
+     * This corresponds to the "Set Price" button in your JavaScript.
+     */
+    @PatchMapping("/{id}/set-price")
+    public ResponseEntity<Medicine> setPrice(@PathVariable Long id, @RequestParam double price) {
+        Medicine med = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Medicine not found"));
+
+        med.setPrice(price);
+        repository.save(med);
+        return ResponseEntity.ok(med);
     }
 
     @PutMapping("/{id}")
@@ -44,47 +85,26 @@ public class MedicineController {
         med.setName(details.getName());
         med.setCategory(details.getCategory());
         med.setPrice(details.getPrice());
-        med.setCostPrice(details.getCostPrice()); // Update cost price
-        med.setStockQuantity(details.getStockQuantity());
-        med.setExpiryDate(details.getExpiryDate());
-        med.setDistributorName(details.getDistributorName());
         return repository.save(med);
     }
 
     @DeleteMapping("/{id}")
-    public String deleteMedicine(@PathVariable Long id) {
-        // This is now restricted to ADMIN only via your SecurityConfig/script.js
+    public ResponseEntity<String> deleteMedicine(@PathVariable Long id) {
         repository.deleteById(id);
-        return "Medicine with ID " + id + " has been deleted successfully!";
+        return ResponseEntity.ok("Medicine deleted successfully!");
     }
 
+    /**
+     * FIFO SALE: Calls the Service to handle batch deduction
+     */
     @PostMapping("/{id}/sell")
-    public Medicine sellMedicine(@PathVariable Long id, @RequestParam int quantity) {
-        Medicine med = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Medicine not found"));
-
-        if (med.getStockQuantity() < quantity) {
-            throw new RuntimeException("Insufficient stock!");
+    public ResponseEntity<?> sellMedicine(@PathVariable Long id, @RequestParam int quantity) {
+        try {
+            medicineService.sellMedicine(id, quantity);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        // Calculate Financials
-        double revenue = med.getPrice() * quantity;
-        double profit = (med.getPrice() - med.getCostPrice()) * quantity;
-
-        // Update Inventory
-        med.setStockQuantity(med.getStockQuantity() - quantity);
-        repository.save(med);
-
-        // Record Sale with Profit Math
-        Sale sale = new Sale();
-        sale.setMedicineName(med.getName());
-        sale.setQuantity(quantity);
-        sale.setTotalPrice(revenue);
-        sale.setTotalProfit(profit); // Save the calculated profit
-        sale.setSaleDate(LocalDateTime.now());
-        saleRepository.save(sale);
-
-        return med;
     }
 
     @GetMapping("/sales/history")

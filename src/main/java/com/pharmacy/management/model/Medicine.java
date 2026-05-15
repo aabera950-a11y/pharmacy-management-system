@@ -2,7 +2,8 @@ package com.pharmacy.management.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDate;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Data
@@ -13,20 +14,16 @@ public class Medicine {
 
     private String name;
     private String category;
-    private Double price;
-    private Double costPrice;   // NEW: Buying Price from Distributor
-    private Integer stockQuantity;
+    private Double price; // Selling Price (usually same across all batches)
 
-    // FIELDS FOR SUPPLY CHAIN & LOGISTICS
-    @Column(name = "expiry_date")
-    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
-    private LocalDate expiryDate;
-    private String distributorName;
+    // A Medicine can have multiple batches (The FIFO list)
+    @OneToMany(mappedBy = "medicine", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Batch> batches = new ArrayList<>();
 
-    // Batch number is excellent for tracking which specific
-    // shipment a medicine came from in case of a recall.
-    private String batchNumber;
-    // Inside Medicine.java
-
-
+    // Helper method to get total stock across all batches
+    public Integer getTotalStock() {
+        return batches.stream()
+                .mapToInt(Batch::getQuantity)
+                .sum();
+    }
 }
