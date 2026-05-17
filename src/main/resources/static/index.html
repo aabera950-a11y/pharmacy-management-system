@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharmacy Pro | Professional Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Professional Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
 <div class="dashboard-container">
-    <!-- SIDEBAR NAVIGATION -->
     <aside class="sidebar">
         <div class="sidebar-logo">
             <i class="fas fa-prescription-bottle-alt"></i>
@@ -46,9 +44,7 @@
         </div>
     </aside>
 
-    <!-- MAIN CONTENT AREA -->
     <main class="main-content">
-        <!-- TOP BAR -->
         <header class="top-bar">
             <h2 id="tab-title">Inventory Overview</h2>
             <div class="search-group">
@@ -60,9 +56,7 @@
 
         <div class="content-wrapper">
 
-            <!-- SECTION 1: INVENTORY TABLE -->
             <section id="inventory-section" class="tab-content active">
-                <!-- DYNAMIC ALERT CONTAINER -->
                 <div id="expiryAlertContainer"></div>
                 <div id="lowStockAlertContainer"></div>
 
@@ -85,7 +79,6 @@
                 </div>
             </section>
 
-            <!-- SECTION 2: KEEPER FORM (ADD/EDIT) -->
             <section id="add-stock-section" class="tab-content">
                 <div id="storeSection" class="form-card">
                     <h3 id="formTitle">+ Add New Stock</h3>
@@ -115,7 +108,6 @@
                                 <label>Registered Supplier</label>
                                 <select id="supplierSelect" required>
                                     <option value="" disabled selected>Select a supplier...</option>
-                                    <!-- Options populated dynamically -->
                                 </select>
                             </div>
                             <div class="input-item">
@@ -131,7 +123,6 @@
                 </div>
             </section>
 
-            <!-- SECTION 3: SUPPLIERS MANAGEMENT -->
             <section id="suppliers-section" class="tab-content">
                 <div class="form-card" style="margin-bottom: 30px;">
                     <h3><i class="fas fa-user-plus"></i> Register New Supplier Profile</h3>
@@ -178,13 +169,11 @@
                         </tr>
                         </thead>
                         <tbody id="supplierTableBody">
-                        <!-- Data injected by JS -->
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- SECTION 4: SALES HISTORY -->
             <section id="sales-history-section" class="tab-content">
                 <div id="salesHistorySection" class="table-container">
                     <h3>Financial Sales History</h3>
@@ -202,7 +191,6 @@
                 </div>
             </section>
 
-            <!-- SECTION 5: FINANCIAL REPORTS (ADMIN DASHBOARD) -->
             <section id="reports-section" class="tab-content">
                 <div id="adminDashboard" class="stats-grid">
                     <div class="stat-card revenue">
@@ -248,7 +236,6 @@
                         </tr>
                         </thead>
                         <tbody id="disposalReportTable">
-                        <!-- Data injected by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -258,7 +245,6 @@
     </main>
 </div>
 
-<!-- SALES MODAL -->
 <div id="salesModal" class="modal">
     <div class="modal-content">
         <h3><i class="fas fa-cart-arrow-down"></i> Confirm Sale</h3>
@@ -275,7 +261,6 @@
     </div>
 </div>
 
-<!-- PRICE SETTING MODAL -->
 <div id="priceModal" class="modal">
     <div class="modal-content">
         <h3><i class="fas fa-tags"></i> Set Selling Price</h3>
@@ -304,7 +289,6 @@
     </div>
 </div>
 
-<!-- DELETE CONFIRMATION MODAL -->
 <div id="deleteModal" class="modal">
     <div class="modal-content delete-modal">
         <div class="delete-icon-wrapper">
@@ -317,6 +301,63 @@
         <div class="modal-actions">
             <button onclick="closeDeleteModal()" class="btn-cancel">No, Keep it</button>
             <button id="confirmDeleteBtn" class="btn-danger">Yes, Delete</button>
+        </div>
+    </div>
+</div>
+
+<div id="poModal" class="modal">
+    <div class="modal-content po-modal-content">
+        <div class="po-header">
+            <i class="fas fa-file-invoice-dollar po-icon"></i>
+            <h3>Automated Procurement Manifest</h3>
+            <p>Draft Reorder Document & Supplier Contact Card</p>
+        </div>
+
+        <hr class="po-divider">
+
+        <div class="po-body">
+            <div class="supplier-info-card">
+                <h5><i class="fas fa-truck-field"></i> Mapped Vendor Profile</h5>
+                <p><strong>Company:</strong> <span id="poSupplierCompany">-</span></p>
+                <p><strong>Contact Person:</strong> <span id="poSupplierContact">-</span></p>
+                <p><strong>Corporate Email:</strong> <span id="poSupplierEmail" class="po-email-highlight">-</span></p>
+            </div>
+
+            <div class="po-details-form">
+                <div class="po-form-row">
+                    <span><strong>Item Description:</strong></span>
+                    <span id="poMedicineName" class="po-text-blue">-</span>
+                </div>
+                <div class="po-form-row">
+                    <span><strong>Current On-Hand Stock:</strong></span>
+                    <span id="poCurrentStock" style="font-weight: bold; color: #e74c3c;">0 units</span>
+                </div>
+
+                <hr class="po-sub-divider">
+
+                <div class="po-calc-box">
+                    <div class="input-item">
+                        <label for="poReorderQty">Replenishment Qty</label>
+                        <input type="number" id="poReorderQty" value="50" min="1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" required>
+                    </div>
+                    <div class="input-item">
+                        <label for="poEstCost">Est. Unit Cost ($)</label>
+                        <input type="number" id="poEstCost" step="0.01" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" readonly>
+                    </div>
+                </div>
+
+                <div class="po-total-display">
+                    <span>Estimated Investment:</span>
+                    <strong id="poTotalInvestment">$0.00</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions po-actions">
+            <button type="button" class="btn-cancel" onclick="closePoModal()">Cancel Draft</button>
+            <button type="button" class="btn-add" id="btnSendPo">
+                <i class="fas fa-paper-plane"></i> Send Email Order
+            </button>
         </div>
     </div>
 </div>

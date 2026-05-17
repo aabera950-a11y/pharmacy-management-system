@@ -3,8 +3,11 @@ package com.pharmacy.management.controller;
 import com.pharmacy.management.model.Batch;
 import com.pharmacy.management.model.Medicine;
 import com.pharmacy.management.model.Sale;
+import com.pharmacy.management.model.Supplier;
+import com.pharmacy.management.model.ReorderRequestDto;
 import com.pharmacy.management.repository.MedicineRepository;
 import com.pharmacy.management.repository.SaleRepository;
+import com.pharmacy.management.repository.SupplierRepository;
 import com.pharmacy.management.service.MedicineService;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +23,17 @@ public class MedicineController {
 
     private final MedicineRepository repository;
     private final SaleRepository saleRepository;
+    private final SupplierRepository supplierRepository; // Added for Supplier Lookups
     private final MedicineService medicineService;
 
+    // Updated constructor to handle all 4 dependencies cleanly
     public MedicineController(MedicineRepository repository,
                               SaleRepository saleRepository,
+                              SupplierRepository supplierRepository,
                               MedicineService medicineService) {
         this.repository = repository;
         this.saleRepository = saleRepository;
+        this.supplierRepository = supplierRepository;
         this.medicineService = medicineService;
     }
 
@@ -110,5 +117,53 @@ public class MedicineController {
     @GetMapping("/sales/history")
     public List<Sale> getSalesHistory() {
         return saleRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    /**
+     * LOW-STOCK AUTOMATED PURChASE ORDERS ENDPOINT
+     * Matches your internal project repository names perfectly.
+     */
+    @GetMapping("/{id}/reorder-details")
+    public ResponseEntity<ReorderRequestDto> getReorderDetails(@PathVariable Long id) {
+        // 1. Fetch the medicine using your exact 'repository' variable
+        Medicine medicine = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Medicine record not found"));
+
+        // 2. Calculate remaining stock levels
+        int totalStock = medicine.getBatches() != null ?
+                medicine.getBatches().stream().mapToInt(Batch::getQuantity).sum() : 0;
+
+        // 3. System defaults if database references are empty
+        String compName = "Legacy/Unknown Vendor";
+        String contact = "N/A";
+        String emailAddress = "procurement@pharmacy.com";
+        double unitCost = 0.0;
+
+        // 4. Trace the latest batch transaction to extract supplier relations
+        if (medicine.getBatches() != null && !medicine.getBatches().isEmpty()) {
+            Batch latestBatch = medicine.getBatches().get(medicine.getBatches().size() - 1);
+            unitCost = latestBatch.getCostPrice();
+
+            if (latestBatch.getSupplierId() != null) {
+                Optional<Supplier> linkedSupplier = supplierRepository.findById(latestBatch.getSupplierId());
+                if (linkedSupplier.isPresent()) {
+                    compName = linkedSupplier.get().getCompanyName();
+                    contact = linkedSupplier.get().getContactPerson();
+                    emailAddress = linkedSupplier.get().getEmail();
+                }
+            }
+        }
+
+        // 5. Build and return the decoupled DTO container
+        ReorderRequestDto dto = new ReorderRequestDto(
+                medicine.getName(),
+                totalStock,
+                compName,
+                contact,
+                emailAddress,
+                unitCost
+        );
+
+        return ResponseEntity.ok(dto);
     }
 }

@@ -48,6 +48,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Dynamic calculator monitoring for Purchase Order input replenishment fields
+    const poQtyInput = document.getElementById('poReorderQty');
+    if(poQtyInput) {
+        poQtyInput.addEventListener('input', updatePoTotal);
+    }
 });
 
 function showTab(tabId) {
@@ -259,10 +265,16 @@ function displayMedicines(data) {
         const isKeeper = (currentUserRole === 'ROLE_STORE_KEEPER' || currentUserRole === 'STORE_KEEPER');
 
         // Render Action Buttons based on database profile roles
-        let priceBtn = isAdmin ? `<button class="${med.price <= 0 ? 'btn-price-alert' : 'btn-price'}" onclick="openPriceModal(${med.id}, '${med.name}', ${med.price}, ${latestCost})"><i class="fas fa-tag"></i> Price</button>` : '';
-        const sellBtn = (isAdmin || isSeller) ? `<button class="btn-sell" ${sellDisabledAttr} onclick="sellMed(${med.id}, ${totalStock}, '${med.name}', ${isExpired}, ${med.price})"><i class="fas fa-cart-plus"></i></button>` : '';
-        const editBtn = (isAdmin || isKeeper) ? `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})"><i class="fas fa-boxes"></i></button>` : '';
-        const deleteBtn = isAdmin ? `<button class="btn-delete" onclick="deleteMed(${med.id})"><i class="fas fa-trash"></i></button>` : '';
+        let priceBtn = isAdmin ? `<button class="${med.price <= 0 ? 'btn-price-alert' : 'btn-price'}" onclick="openPriceModal(${med.id}, '${med.name}', ${med.price}, ${latestCost})" title="Set Price"><i class="fas fa-tag"></i> Price</button>` : '';
+        const sellBtn = (isAdmin || isSeller) ? `<button class="btn-sell" ${sellDisabledAttr} onclick="sellMed(${med.id}, ${totalStock}, '${med.name}', ${isExpired}, ${med.price})" title="Sell Item"><i class="fas fa-cart-plus"></i></button>` : '';
+        const editBtn = (isAdmin || isKeeper) ? `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})" title="Add Batch"><i class="fas fa-boxes"></i></button>` : '';
+        const deleteBtn = isAdmin ? `<button class="btn-delete" onclick="deleteMed(${med.id})" title="Delete Record"><i class="fas fa-trash"></i></button>` : '';
+
+        // NEW: Inline Procurement Trigger generation condition (Triggers if stock drops to 5 or below)
+        let poBtn = '';
+        if ((isAdmin || isKeeper) && totalStock <= 5) {
+            poBtn = `<button class="btn-edit" style="background-color: #e67e22; margin-left: 4px;" onclick="openPoModal(${med.id})" title="Generate Purchase Order"><i class="fas fa-file-invoice-dollar"></i></button>`;
+        }
 
         return `<tr class="${rowClass}">
             <td>#${med.id}</td>
@@ -271,7 +283,7 @@ function displayMedicines(data) {
             <td>${med.price <= 0 ? '⚠️ Set Price' : `$${med.price.toFixed(2)}`}</td>
             <td><span class="stock-badge ${stockClass}">${totalStock}</span></td>
             <td>${expiryDisplay}</td>
-            <td>${priceBtn} ${sellBtn} ${editBtn} ${deleteBtn}</td>
+            <td>${priceBtn} ${sellBtn} ${editBtn} ${poBtn} ${deleteBtn}</td>
         </tr>`;
     }).join('');
 
@@ -442,14 +454,66 @@ function closeDeleteModal() {
     document.getElementById('deleteModal').style.display = "none";
 }
 
+// --- NEW ADDITION: AUTOMATED PURCHASE ORDER FORM CONTROL HANDLERS ---
+
+function openPoModal(medicineId) {
+    // Query our new Milestone 1 endpoint matrix
+    fetch(`${API_URL}/${medicineId}/reorder-details`)
+        .then(res => {
+            if(!res.ok) throw new Error("Could not construct draft map context.");
+            return res.json();
+        })
+        .then(dto => {
+            // Populate mapping tags out to HTML targets
+            document.getElementById('poSupplierCompany').innerText = dto.companyName;
+            document.getElementById('poSupplierContact').innerText = dto.contactPerson;
+            document.getElementById('poSupplierEmail').innerText = dto.email;
+            document.getElementById('poMedicineName').innerText = dto.medicineName;
+            document.getElementById('poCurrentStock').innerText = `${dto.currentStock} units`;
+            document.getElementById('poEstCost').value = dto.lastCostPrice.toFixed(2);
+
+            // Set dynamic replenishment values
+            document.getElementById('poReorderQty').value = 50;
+            updatePoTotal();
+
+            // Set up click pipeline trigger
+            const sendBtn = document.getElementById('btnSendPo');
+            sendBtn.onclick = function() {
+                const qty = document.getElementById('poReorderQty').value;
+                showToast(`PO Document Manifest generated and dispatched for transmission to ${dto.email}!`, "success");
+                closePoModal();
+            };
+
+            // Slide the modal viewport framework visible
+            document.getElementById('poModal').style.display = "flex";
+        })
+        .catch(err => {
+            console.error("Procurement compilation aborted:", err);
+            showToast("Failed to compile procurement records for this medicine.", "error");
+        });
+}
+
+function closePoModal() {
+    document.getElementById('poModal').style.display = "none";
+}
+
+function updatePoTotal() {
+    const qty = parseInt(document.getElementById('poReorderQty').value) || 0;
+    const cost = parseFloat(document.getElementById('poEstCost').value) || 0.0;
+    const computedTotal = qty * cost;
+    document.getElementById('poTotalInvestment').innerText = `$${computedTotal.toFixed(2)}`;
+}
+
 window.onclick = function(event) {
     const delModal = document.getElementById('deleteModal');
     const salesModal = document.getElementById('salesModal');
     const priceModal = document.getElementById('priceModal');
+    const poModal = document.getElementById('poModal');
 
     if (event.target == delModal) closeDeleteModal();
     if (event.target == salesModal) closeModal();
     if (event.target == priceModal) closePriceModal();
+    if (event.target == poModal) closePoModal();
 }
 
 // --- 7. FORM & BATCH INTEGRATION ---
