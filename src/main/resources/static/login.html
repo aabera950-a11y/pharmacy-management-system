@@ -3,31 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PharmaPro | Secure Access</title>
+    <title>PharmaPro | Secure Authentication</title>
     <link rel="stylesheet" href="login-style.css">
+    <!-- Icon Repository for Password Toggle -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="login-screen">
 
 <div class="login-card">
-    <div class="login-icon">💊</div>
-    <h2>PharmaPro System</h2>
-    <p>Access the Pharmacy Management Dashboard</p>
+    <div class="login-brand">
+        <i class="fas fa-prescription-bottle-alt logo-icon"></i>
+        <h2>PharmaPro System</h2>
+        <p>Pharmacy Management Core & Authentication</p>
+    </div>
 
-    <div id="errorBox" class="error-msg">Invalid Credentials</div>
+    <div id="errorBox" class="error-msg">
+        <i class="fas fa-exclamation-triangle"></i> Invalid credentials or unauthorized access request.
+    </div>
 
     <form action="/login" method="POST" id="loginForm">
         <div class="input-group">
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Enter Username" required autofocus>
+            <div class="input-wrapper">
+                <i class="fas fa-user field-icon"></i>
+                <input type="text" id="username" name="username" placeholder="Enter Username" required autofocus>
+            </div>
         </div>
 
         <div class="input-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="••••••••" required>
+            <div class="input-wrapper">
+                <i class="fas fa-lock field-icon"></i>
+                <input type="password" id="password" name="password" placeholder="••••••••" required>
+                <i class="fas fa-eye toggle-password" id="passwordToggle"></i>
+            </div>
         </div>
 
-        <button type="submit" class="btn-login">Sign In</button>
+        <button type="submit" class="btn-login">
+            <span>Sign In to Dashboard</span> <i class="fas fa-arrow-right"></i>
+        </button>
     </form>
+
+    <div class="login-footer">
+        <p>⚠️ <strong>Authorized Access Only</strong></p>
+        <p>System activities are logged under HIPAA/regulatory compliance standards.</p>
+    </div>
 </div>
 
 <script src="login-script.js"></script>

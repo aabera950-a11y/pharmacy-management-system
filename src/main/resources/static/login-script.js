@@ -1,13 +1,30 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Check the URL for the 'error' parameter
+    // 1. Process Security Validation Errors
     const urlParams = new URLSearchParams(window.location.search);
 
     if (urlParams.has('error')) {
         const errorBox = document.getElementById('errorBox');
-        errorBox.style.display = 'block';
+        if (errorBox) errorBox.style.display = 'flex';
 
-        // Add a small shake animation to the card for professional feel
+        // Triggers the fully implemented CSS structural shake
         const card = document.querySelector('.login-card');
-        card.style.animation = "shake 0.5s";
+        if (card) {
+            card.classList.add('card-shake');
+        }
+    }
+
+    // 2. Interactive Password Field Visibility Eye-Toggle
+    const passwordToggle = document.getElementById('passwordToggle');
+    const passwordInput = document.getElementById('password');
+
+    if (passwordToggle && passwordInput) {
+        passwordToggle.addEventListener('click', function() {
+            const isHidden = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isHidden ? 'text' : 'password');
+
+            // Swap icons smoothly
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
     }
 });

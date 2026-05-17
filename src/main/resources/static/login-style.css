@@ -1,8 +1,9 @@
 :root {
     --primary: #2c3e50;
     --accent: #3498db;
-    --success: #27ae60;
+    --success: #2ecc71;
     --error: #e74c3c;
+    --text-muted: #7f8c8d;
 }
 
 .login-screen {
@@ -10,7 +11,7 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, #1a252f 100%);
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -19,38 +20,97 @@
     background: #ffffff;
     padding: 40px;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
     width: 100%;
-    max-width: 380px;
-    text-align: center;
+    max-width: 400px;
+    box-sizing: border-box;
 }
 
-.login-icon { font-size: 3rem; margin-bottom: 1rem; }
+.login-brand {
+    text-align: center;
+    margin-bottom: 25px;
+}
 
+.logo-icon {
+    font-size: 2.8rem;
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.login-brand h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: var(--primary);
+}
+
+.login-brand p {
+    margin: 5px 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* INPUT GROUPS & FIELD WRAPPERS */
 .input-group {
-    text-align: left;
-    margin-bottom: 1.2rem;
+    margin-bottom: 20px;
 }
 
 .input-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: 8px;
+    font-weight: 600;
     color: var(--primary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.input-group input {
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.field-icon {
+    position: absolute;
+    left: 14px;
+    color: #95a5a6;
+    font-size: 0.95rem;
+}
+
+.input-wrapper input {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
+    padding: 14px 14px 14px 40px;
+    border: 1px solid #dcdde1;
     border-radius: 6px;
     box-sizing: border-box;
+    font-size: 0.95rem;
+    color: var(--primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.input-wrapper input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+/* Visibility Control Eye Button */
+.toggle-password {
+    position: absolute;
+    right: 14px;
+    color: #7f8c8d;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s;
+}
+.toggle-password:hover {
+    color: var(--primary);
+}
+
+/* SIGN IN SUBMIT BUTTON */
 .btn-login {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: var(--success);
     color: white;
     border: none;
@@ -58,17 +118,55 @@
     font-size: 1rem;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s, transform 0.1s;
 }
 
-.btn-login:hover { background: #219150; }
+.btn-login:hover {
+    background: #27ae60;
+}
+.btn-login:active {
+    transform: scale(0.99);
+}
 
+/* SYSTEM NOTIFICATIONS */
 .error-msg {
     display: none;
-    background: #fdeaea;
+    background: #fdf2f2;
     color: var(--error);
-    padding: 10px;
+    border-left: 4px solid var(--error);
+    padding: 12px;
     border-radius: 4px;
-    margin-bottom: 1rem;
+    margin-bottom: 20px;
     font-size: 0.85rem;
+    font-weight: 500;
+    align-items: center;
+    gap: 10px;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f2f6;
+}
+.login-footer p {
+    margin: 0 0 4px 0;
+    font-size: 0.75rem;
+    color: #95a5a6;
+    line-height: 1.4;
+}
+
+/* HARDWARE ACCELERATED SECURITY WRAPPER SHAKE SHIFT */
+.card-shake {
+    animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
 }

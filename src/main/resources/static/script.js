@@ -13,7 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(user => {
             currentUserRole = user.role;
             const nameDisplay = document.getElementById('userNameDisplay');
-            if(nameDisplay) nameDisplay.innerText = `👤 ${user.username} (${user.role})`;
+
+            // Clean up the display string visually so operators don't see raw database underlines
+            const userFriendlyRole = user.role ? user.role.replace('ROLE_', '') : 'UNKNOWN';
+            if(nameDisplay) nameDisplay.innerText = `👤 ${user.username} (${userFriendlyRole})`;
+
             applyRolePermissions(user.role);
             loadMedicines();
             loadSuppliers(); // Run Supplier fetching alongside Inventory initialization
@@ -34,6 +38,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const supplierForm = document.getElementById('supplierForm');
     if(supplierForm) {
         supplierForm.onsubmit = handleAddSupplier;
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMedicine();
+            }
+        });
     }
 });
 
@@ -65,13 +78,14 @@ function applyRolePermissions(role) {
     const costHeader = document.getElementById('costHeader');
     const priceInputGroup = document.getElementById('priceInputGroup');
 
-    if (role === 'SELLER') {
+    // MATCHING UPDATED: Validating prefix mapping constraints directly from H2 database records
+    if (role === 'ROLE_SELLER' || role === 'SELLER') {
         if(navStore) navStore.style.display = 'none';
         if(navSuppliers) navSuppliers.style.display = 'none';
         if(navSales) navSales.style.display = 'none';
         if(navReports) navReports.style.display = 'none';
         if(costHeader) costHeader.style.display = 'none';
-    } else if (role === 'STORE_KEEPER') {
+    } else if (role === 'ROLE_STORE_KEEPER' || role === 'STORE_KEEPER') {
         if(navSales) navSales.style.display = 'none';
         if(navReports) navReports.style.display = 'none';
         if(costHeader) costHeader.style.display = 'none';
@@ -88,7 +102,7 @@ function loadMedicines() {
             displayMedicines(data);      // Main Table
             generateDisposalReport(data); // New Report Table
         });
-    if (currentUserRole === 'ADMIN') loadSalesHistory();
+    if (currentUserRole === 'ROLE_ADMIN' || currentUserRole === 'ADMIN') loadSalesHistory();
 }
 
 function loadSalesHistory() {
@@ -107,7 +121,6 @@ function loadSuppliers() {
         })
         .catch(err => {
             console.error("Supplier profiles unavailable. Operating inside standard text legacy mode:", err);
-            // Injecting fallback options to secure continuity of form operations
             populateSupplierDropdown([{id: 1, companyName: "Legacy/Unknown Vendor"}]);
         });
 }
@@ -240,11 +253,16 @@ function displayMedicines(data) {
         const canSell = !isExpired && med.price > 0 && totalStock > 0;
         const sellDisabledAttr = canSell ? '' : 'disabled style="opacity: 0.5; cursor: not-allowed;"';
 
-        // Render Action Buttons
-        let priceBtn = (currentUserRole === 'ADMIN') ? `<button class="${med.price <= 0 ? 'btn-price-alert' : 'btn-price'}" onclick="openPriceModal(${med.id}, '${med.name}', ${med.price}, ${latestCost})"><i class="fas fa-tag"></i> Price</button>` : '';
-        const sellBtn = (currentUserRole === 'ADMIN' || currentUserRole === 'SELLER') ? `<button class="btn-sell" ${sellDisabledAttr} onclick="sellMed(${med.id}, ${totalStock}, '${med.name}', ${isExpired}, ${med.price})"><i class="fas fa-cart-plus"></i></button>` : '';
-        const editBtn = (currentUserRole === 'ADMIN' || currentUserRole === 'STORE_KEEPER') ? `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})"><i class="fas fa-boxes"></i></button>` : '';
-        const deleteBtn = (currentUserRole === 'ADMIN') ? `<button class="btn-delete" onclick="deleteMed(${med.id})"><i class="fas fa-trash"></i></button>` : '';
+        // Normalized checks matching both 'ROLE_' variations for dynamic grid button generation
+        const isAdmin = (currentUserRole === 'ROLE_ADMIN' || currentUserRole === 'ADMIN');
+        const isSeller = (currentUserRole === 'ROLE_SELLER' || currentUserRole === 'SELLER');
+        const isKeeper = (currentUserRole === 'ROLE_STORE_KEEPER' || currentUserRole === 'STORE_KEEPER');
+
+        // Render Action Buttons based on database profile roles
+        let priceBtn = isAdmin ? `<button class="${med.price <= 0 ? 'btn-price-alert' : 'btn-price'}" onclick="openPriceModal(${med.id}, '${med.name}', ${med.price}, ${latestCost})"><i class="fas fa-tag"></i> Price</button>` : '';
+        const sellBtn = (isAdmin || isSeller) ? `<button class="btn-sell" ${sellDisabledAttr} onclick="sellMed(${med.id}, ${totalStock}, '${med.name}', ${isExpired}, ${med.price})"><i class="fas fa-cart-plus"></i></button>` : '';
+        const editBtn = (isAdmin || isKeeper) ? `<button class="btn-edit" onclick="prepareEdit(${JSON.stringify(med).replace(/"/g, '&quot;')})"><i class="fas fa-boxes"></i></button>` : '';
+        const deleteBtn = isAdmin ? `<button class="btn-delete" onclick="deleteMed(${med.id})"><i class="fas fa-trash"></i></button>` : '';
 
         return `<tr class="${rowClass}">
             <td>#${med.id}</td>
@@ -320,7 +338,24 @@ function handleUpdatePrice() {
 
 function searchMedicine() {
     const name = document.getElementById('searchInput').value;
-    fetch(`${API_URL}/search?name=${name}`).then(res => res.json()).then(displayMedicines);
+    showTab('inventory');
+
+    fetch(`${API_URL}/search?name=${name}`)
+        .then(res => res.json())
+        .then(data => {
+            displayMedicines(data);
+            if (name.trim() !== "") {
+                if (data.length === 0) {
+                    showToast(`No inventory matches found for "${name}".`, "info");
+                } else {
+                    showToast(`Found ${data.length} matching inventory records.`, "success");
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Search pipeline execution error:", err);
+            showToast("Search failed. Check backend database connectivity.", "error");
+        });
 }
 
 function sellMed(id, currentStock, name, isExpired, price) {
@@ -362,7 +397,7 @@ function sellMed(id, currentStock, name, isExpired, price) {
                 if(res.ok) {
                     loadMedicines();
                     closeModal();
-                    if (currentUserRole === 'ADMIN') loadSalesHistory();
+                    if (currentUserRole === 'ROLE_ADMIN' || currentUserRole === 'ADMIN') loadSalesHistory();
                 } else {
                     alert("Error processing sale. Check backend logs.");
                 }
@@ -441,7 +476,6 @@ function prepareEdit(med) {
     document.getElementById('submitBtn').innerText = "Save Batch";
     document.getElementById('cancelBtn').style.display = "inline-block";
 
-    // Auto fallback setting if legacy batch data is mapped via text strings
     if (med.batches && med.batches.length > 0 && med.batches[0].supplierId) {
         document.getElementById('supplierSelect').value = med.batches[0].supplierId;
     }
@@ -451,8 +485,6 @@ const medicineForm = document.getElementById('medicineForm');
 if(medicineForm) {
     medicineForm.onsubmit = function(e) {
         e.preventDefault();
-
-        // Read selected structural ID values
         const selectedSupplierId = parseInt(document.getElementById('supplierSelect').value);
 
         const medicineData = {
@@ -463,7 +495,7 @@ if(medicineForm) {
                 quantity: parseInt(document.getElementById('stock').value),
                 costPrice: parseFloat(document.getElementById('costPrice').value),
                 expiryDate: document.getElementById('expiryDate').value,
-                supplierId: selectedSupplierId, // Mapped structural Foreign Key replaces blind text
+                supplierId: selectedSupplierId,
                 batchNumber: "B-" + Date.now()
             }]
         };
@@ -532,9 +564,8 @@ function generateDisposalReport(data) {
         </tr>
     `;
 }
-// --- MODERN NOTIFICATION ENGINE ---
+
 function showToast(message, type = 'success') {
-    // 1. Create container if it doesn't exist on the page yet
     let container = document.querySelector('.toast-container');
     if (!container) {
         container = document.createElement('div');
@@ -542,12 +573,10 @@ function showToast(message, type = 'success') {
         document.body.appendChild(container);
     }
 
-    // 2. Select the correct icon based on notification type
     let iconClass = 'fa-check-circle';
     if (type === 'error') iconClass = 'fa-times-circle';
     if (type === 'info') iconClass = 'fa-exclamation-circle';
 
-    // 3. Construct the HTML element
     const toast = document.createElement('div');
     toast.className = `toast-notification ${type}`;
     toast.innerHTML = `
@@ -559,11 +588,8 @@ function showToast(message, type = 'success') {
     `;
 
     container.appendChild(toast);
-
-    // 4. Trigger sliding animation
     setTimeout(() => toast.classList.add('show'), 10);
 
-    // 5. Automatically clear notification after 4 seconds
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
